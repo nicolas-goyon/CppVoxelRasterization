@@ -110,21 +110,21 @@ static inline std::size_t Index3D(unsigned x, unsigned y, unsigned z,
          +  static_cast<std::size_t>(Y) * static_cast<std::size_t>(z));
 }
 
-void FillWithPerlin(unsigned int seed, Chunk chunk)
+void FillWithPerlin(unsigned int seed, Chunk* chunk)
 {
     // zero everything first
-    const std::size_t total = static_cast<std::size_t>(chunk.XDepth) * chunk.YDepth * chunk.ZDepth;
+    const std::size_t total = static_cast<std::size_t>(chunk->XDepth) * chunk->YDepth * chunk->ZDepth;
     for (std::size_t i = 0; i < total; ++i) {
-        chunk.data[i] = Voxel{};            // if Voxel is uint16_t this sets 0; if a struct, this default-constructs
+        chunk->data[i] = Voxel{};            // if Voxel is uint16_t this sets 0; if a struct, this default-constructs
     }
 
     PerlinNoise noise(seed);
 
-    for (unsigned x = 0; x < chunk.XDepth; ++x) {
-        for (unsigned z = 0; z < chunk.ZDepth; ++z) {
+    for (unsigned x = 0; x < chunk->XDepth; ++x) {
+        for (unsigned z = 0; z < chunk->ZDepth; ++z) {
             // Normalize like your C# code did. If XDepth==ZDepth, this is identical.
-            float nx = static_cast<float>(x) / static_cast<float>(chunk.XDepth);
-            float nz = static_cast<float>(z) / static_cast<float>(chunk.ZDepth);
+            float nx = static_cast<float>(x) / static_cast<float>(chunk->XDepth);
+            float nz = static_cast<float>(z) / static_cast<float>(chunk->ZDepth);
 
             // Same three octaves and weights
             float height =
@@ -133,12 +133,12 @@ void FillWithPerlin(unsigned int seed, Chunk chunk)
                 noise.Noise(nx * 4.0f, nz * 4.0f) *  5.0f;
 
             int h = std::clamp(static_cast<int>(height + 5.0f), 0,
-                               static_cast<int>(chunk.YDepth) - 1);
+                               static_cast<int>(chunk->YDepth) - 1);
 
             for (int y = 0; y <= h; ++y) {
                 std::size_t idx = Index3D(x, static_cast<unsigned>(y), z,
-                                          chunk.XDepth, chunk.YDepth, chunk.ZDepth);
-                chunk.data[idx].VoxelID = 1;
+                                          chunk->XDepth, chunk->YDepth, chunk->ZDepth);
+                chunk->data[idx].VoxelID = 1;
             }
         }
     }
@@ -149,8 +149,9 @@ int main()
     std::cout << "Hello World!\n";
     Chunk chunk(4, 2, 6);
 
-    FillWithPerlin(123, chunk);
+    FillWithPerlin(123, &chunk);
 
     std::cout << chunk;
+
     return 0;
 }
