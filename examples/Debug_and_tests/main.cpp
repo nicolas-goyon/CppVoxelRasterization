@@ -1,9 +1,17 @@
 // Use the standard library header, but import our custom module
 #include <iostream>
-#include <algorithm>   // std::clamp
+#include <algorithm> // std::clamp
 #include <cstdint>
+#include <list>
+#include <vector>
+#include <map>
+#include <sstream>
+#include <fstream>
+#include <string>
 #include <cmath>
 #include <random>
+#include "MeshQuad.hpp"
+#include "Mesh.hpp"
 #include "Chunk.hpp"
 
 class PerlinNoise
@@ -31,11 +39,6 @@ public:
             p[i] = perm[i];
             p[256 + i] = perm[i];
         }
-    }
-
-    ~PerlinNoise(){
-        // delete[] p;
-        // delete[] permutation;
     }
 
     float Noise(float x, float y) const
@@ -98,25 +101,27 @@ private:
     }
 };
 
-
 static inline int Index3D(unsigned int x, unsigned int y, unsigned int z,
-                                  unsigned int X, unsigned int Y, unsigned int Z)
+                          unsigned int X, unsigned int Y, unsigned int Z)
 {
-    return x + X * (y +  Y * z);
+    return x + X * (y + Y * z);
 }
 
-void FillWithPerlin(unsigned int seed, Chunk* chunk)
+void FillWithPerlin(unsigned int seed, Chunk *chunk)
 {
     // zero everything first
     const std::size_t total = static_cast<std::size_t>(chunk->XDepth) * chunk->YDepth * chunk->ZDepth;
-    for (std::size_t i = 0; i < total; ++i) {
-        chunk->data[i] = Voxel{};            // if Voxel is uint16_t this sets 0; if a struct, this default-constructs
+    for (std::size_t i = 0; i < total; ++i)
+    {
+        chunk->data[i] = Voxel{}; // if Voxel is uint16_t this sets 0; if a struct, this default-constructs
     }
 
     PerlinNoise noise(seed);
 
-    for (unsigned x = 0; x < chunk->XDepth; ++x) {
-        for (unsigned z = 0; z < chunk->ZDepth; ++z) {
+    for (unsigned x = 0; x < chunk->XDepth; ++x)
+    {
+        for (unsigned z = 0; z < chunk->ZDepth; ++z)
+        {
             // Normalize like your C# code did. If XDepth==ZDepth, this is identical.
             float nx = x / (float)chunk->XDepth;
             float nz = z / (float)chunk->ZDepth;
@@ -125,17 +130,19 @@ void FillWithPerlin(unsigned int seed, Chunk* chunk)
             float height =
                 noise.Noise(nx * 1.0f, nz * 1.0f) * 20.0f +
                 noise.Noise(nx * 2.0f, nz * 2.0f) * 10.0f +
-                noise.Noise(nx * 4.0f, nz * 4.0f) *  5.0f;
+                noise.Noise(nx * 4.0f, nz * 4.0f) * 5.0f;
 
             int h = std::clamp(static_cast<int>(height + 5.0f), 0,
                                static_cast<int>(chunk->YDepth) - 1);
 
-            for (int y = 0; y <= h; ++y) {
+            for (int y = 0; y <= h; ++y)
+            {
                 std::size_t idx = Index3D(x, y, z,
                                           chunk->XDepth, chunk->YDepth, chunk->ZDepth);
                 chunk->data[idx].VoxelID = 1;
             }
-            for (int y = h + 1; y < chunk->YDepth; y++){
+            for (int y = h + 1; y < chunk->YDepth; y++)
+            {
                 std::size_t idx = Index3D(x, y, z,
                                           chunk->XDepth, chunk->YDepth, chunk->ZDepth);
                 chunk->data[idx].VoxelID = 0;
@@ -144,14 +151,150 @@ void FillWithPerlin(unsigned int seed, Chunk* chunk)
     }
 }
 
+Mesh BuildMeshFromChunk(const Chunk &chunk)
+{
+    Mesh mesh;
+
+    auto index = [&chunk](int x, int y, int z)
+    {
+        return x + chunk.XDepth * (y + chunk.YDepth * z);
+    };
+
+    for (int x = 0; x < static_cast<int>(chunk.XDepth); ++x)
+    {
+        for (int y = 0; y < static_cast<int>(chunk.YDepth); ++y)
+        {
+            for (int z = 0; z < static_cast<int>(chunk.ZDepth); ++z)
+            {
+                const Voxel &voxel = chunk.data[index(x, y, z)];
+                if (voxel.VoxelID == 0)
+                    continue;
+
+                // -X face
+                MeshQuad q;
+                q.Vertex0 = {x, y, z + 1};
+                q.Vertex1 = {x, y, z};
+                q.Vertex2 = {x, y + 1, z};
+                q.Vertex3 = {x, y + 1, z + 1};
+                q.Normal = {-1, 0, 0};
+                q.VoxelID = voxel.VoxelID;
+                mesh.quads.push_back(q);
+
+                // +X face
+                q.Vertex0 = {x + 1, y, z};
+                q.Vertex1 = {x + 1, y, z + 1};
+                q.Vertex2 = {x + 1, y + 1, z + 1};
+                q.Vertex3 = {x + 1, y + 1, z};
+                q.Normal = {1, 0, 0};
+                q.VoxelID = voxel.VoxelID;
+                mesh.quads.push_back(q);
+
+                // -Y face
+                q.Vertex0 = {x, y, z};
+                q.Vertex1 = {x + 1, y, z};
+                q.Vertex2 = {x + 1, y, z + 1};
+                q.Vertex3 = {x, y, z + 1};
+                q.Normal = {0, -1, 0};
+                q.VoxelID = voxel.VoxelID;
+                mesh.quads.push_back(q);
+
+                // +Y face
+                q.Vertex0 = {x, y + 1, z + 1};
+                q.Vertex1 = {x + 1, y + 1, z + 1};
+                q.Vertex2 = {x + 1, y + 1, z};
+                q.Vertex3 = {x, y + 1, z};
+                q.Normal = {0, 1, 0};
+                q.VoxelID = voxel.VoxelID;
+                mesh.quads.push_back(q);
+
+                // -Z face
+                q.Vertex0 = {x + 1, y, z};
+                q.Vertex1 = {x, y, z};
+                q.Vertex2 = {x, y + 1, z};
+                q.Vertex3 = {x + 1, y + 1, z};
+                q.Normal = {0, 0, -1};
+                q.VoxelID = voxel.VoxelID;
+                mesh.quads.push_back(q);
+
+                // +Z face
+                q.Vertex0 = {x, y, z + 1};
+                q.Vertex1 = {x + 1, y, z + 1};
+                q.Vertex2 = {x + 1, y + 1, z + 1};
+                q.Vertex3 = {x, y + 1, z + 1};
+                q.Normal = {0, 0, 1};
+                q.VoxelID = voxel.VoxelID;
+                mesh.quads.push_back(q);
+            }
+        }
+    }
+
+    return mesh;
+}
+
+std::string MeshToObjString(const Mesh &mesh)
+{
+    struct Int3Less
+    {
+        bool operator()(const Int3 &a, const Int3 &b) const
+        {
+            if (a.x != b.x)
+                return a.x < b.x;
+            if (a.y != b.y)
+                return a.y < b.y;
+            return a.z < b.z;
+        }
+    };
+
+    std::vector<Int3> vertices;
+    std::map<Int3, int, Int3Less> vertexIndices;
+
+    auto addVertex = [&](const Int3 &v)
+    {
+        if (vertexIndices.find(v) == vertexIndices.end())
+        {
+            vertices.push_back(v);
+            vertexIndices[v] = static_cast<int>(vertices.size()); // 1-based
+        }
+    };
+
+    for (const auto &q : mesh.quads)
+    {
+        addVertex(q.Vertex0);
+        addVertex(q.Vertex1);
+        addVertex(q.Vertex2);
+        addVertex(q.Vertex3);
+    }
+
+    std::ostringstream sb;
+
+    for (const auto &v : vertices)
+    {
+        sb << "v " << v.x << ' ' << v.y << ' ' << v.z << '\n';
+    }
+
+    for (const auto &q : mesh.quads)
+    {
+        sb << "f " << vertexIndices[q.Vertex0] << ' ' << vertexIndices[q.Vertex1] << ' '
+           << vertexIndices[q.Vertex2] << ' ' << vertexIndices[q.Vertex3] << '\n';
+    }
+
+    return sb.str();
+}
+
 int main()
 {
     std::cout << "Hello World!\n";
-    Chunk chunk(4, 2, 6);
+    Chunk chunk(50, 50, 50);
 
     FillWithPerlin(123, &chunk);
 
     std::cout << chunk;
+    Mesh mesh = BuildMeshFromChunk(chunk);
+    std::cout << "Generated quads: " << mesh.quads.size() << "\n";
+    std::string obj = MeshToObjString(mesh);
+    std::ofstream file("chunk.obj");
+    file << obj;
+    std::cout << "Wrote OBJ to chunk.obj\n";
 
     return 0;
 }
