@@ -99,15 +99,10 @@ private:
 };
 
 
-static inline std::size_t Index3D(unsigned x, unsigned y, unsigned z,
-                                  unsigned X, unsigned Y, unsigned Z)
+static inline int Index3D(unsigned int x, unsigned int y, unsigned int z,
+                                  unsigned int X, unsigned int Y, unsigned int Z)
 {
-    // Same logical layout as voxels[x, y, z] in C#:
-    // idx = x + X * (y + Y * z)
-    return static_cast<std::size_t>(x)
-         + static_cast<std::size_t>(X) *
-           (static_cast<std::size_t>(y)
-         +  static_cast<std::size_t>(Y) * static_cast<std::size_t>(z));
+    return x + X * (y +  Y * z);
 }
 
 void FillWithPerlin(unsigned int seed, Chunk* chunk)
@@ -123,8 +118,8 @@ void FillWithPerlin(unsigned int seed, Chunk* chunk)
     for (unsigned x = 0; x < chunk->XDepth; ++x) {
         for (unsigned z = 0; z < chunk->ZDepth; ++z) {
             // Normalize like your C# code did. If XDepth==ZDepth, this is identical.
-            float nx = static_cast<float>(x) / static_cast<float>(chunk->XDepth);
-            float nz = static_cast<float>(z) / static_cast<float>(chunk->ZDepth);
+            float nx = x / (float)chunk->XDepth;
+            float nz = z / (float)chunk->ZDepth;
 
             // Same three octaves and weights
             float height =
@@ -136,9 +131,14 @@ void FillWithPerlin(unsigned int seed, Chunk* chunk)
                                static_cast<int>(chunk->YDepth) - 1);
 
             for (int y = 0; y <= h; ++y) {
-                std::size_t idx = Index3D(x, static_cast<unsigned>(y), z,
+                std::size_t idx = Index3D(x, y, z,
                                           chunk->XDepth, chunk->YDepth, chunk->ZDepth);
                 chunk->data[idx].VoxelID = 1;
+            }
+            for (int y = h + 1; y < chunk->YDepth; y++){
+                std::size_t idx = Index3D(x, y, z,
+                                          chunk->XDepth, chunk->YDepth, chunk->ZDepth);
+                chunk->data[idx].VoxelID = 0;
             }
         }
     }
