@@ -10,10 +10,7 @@ Chunk::Chunk(unsigned int xDepth, unsigned int yDepth, unsigned int zDepth){
     this->data = new Voxel[xDepth * yDepth * zDepth];
 }
 Chunk::~Chunk(){
-    delete data;
-    delete XDepth;
-    delete YDepth;
-    delete ZDepth;
+    delete[] data;
 }
 
     
