@@ -6,7 +6,7 @@
 int main()
 {
     std::cout << "Hello World!\n";
-    Chunk chunk(4, 4, 4);
+    Chunk chunk(4, 2, 6);
     std::cout << chunk;
     return 0;
 }

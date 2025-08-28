@@ -2,7 +2,7 @@ CXX := g++
 CXXFLAGS := -O2 -Ipublic_headers
 SRCS := $(wildcard Core/*.cpp)
 OBJS := $(SRCS:.cpp=.o)
-LIB := cpp_voxel_raster.a
+LIB := libcpp_voxel_raster.a
 
 all: $(LIB)
 
