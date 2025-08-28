@@ -15,7 +15,7 @@ Chunk::~Chunk(){
 
     
 bool Chunk::IsOutOfBound(unsigned int x, unsigned int y, unsigned int z){
-    return x < this->XDepth && y < this->YDepth && z < this->ZDepth;
+    return x >= this->XDepth && y >= this->YDepth && z >= this->ZDepth;
 }
 
 

@@ -4,5 +4,8 @@
 struct Voxel{
     unsigned int VoxelID;
 
-    bool IsSolid();
+    bool IsSolid(){
+        return VoxelID == 0;
+    };
+
 };
