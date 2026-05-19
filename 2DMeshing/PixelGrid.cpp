@@ -6,7 +6,13 @@
 
 namespace Meshing2D {
 
-    PixelGrid::PixelGrid(int sizeX, int sizeY) : sizeX(sizeX), sizeY(sizeY), grid(sizeX * sizeY){    }
+    PixelGrid::PixelGrid(int const sizeX, int const sizeY) : sizeX(sizeX), sizeY(sizeY), grid(sizeX * sizeY){    }
+
+    PixelGrid::PixelGrid(PixelGrid &other) :sizeX(other.sizeX), sizeY(other.sizeY), grid(sizeX*sizeY) {
+        this->Fill(
+            [&other](int const x,int const y) {return other.Get(x,y);}
+            );
+    }
 
     PixelGrid::~PixelGrid() = default;
 

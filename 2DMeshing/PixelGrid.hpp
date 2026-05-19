@@ -12,6 +12,7 @@ namespace Meshing2D {
     class PixelGrid {
         public:
             PixelGrid(int sizeX, int sizeY);
+            PixelGrid(PixelGrid& other);
 
             ~PixelGrid();
 
@@ -30,6 +31,10 @@ namespace Meshing2D {
             }
 
             std::ostream& Display(std::ostream &flux) const;
+
+            [[nodiscard]] int GetSizeX() const { return sizeX; };
+            [[nodiscard]] int GetSizeY() const { return sizeY; };
+
 
 
         private:
